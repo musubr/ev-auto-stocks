@@ -138,7 +138,7 @@ class Backtesting:
 
                 beta = self.stock_to_beta_df.loc[ticker]["beta"]
                 rm = np.log(self.index_prices.loc[tr_date] / self.index_prices.loc[buy_date])
-                rf = self.ten_yr_yield.loc[buy_date: tr_date].mean() / (365*100) * days_held
+                rf = self.ten_yr_yield.loc[buy_date: tr_date].mean() / (365) * days_held
                 er = rf + beta * (rm - rf)
                 ri = np.log(price / buy_price)
                 risk_adjusted_ri = ri - er
