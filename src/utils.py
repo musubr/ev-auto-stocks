@@ -47,30 +47,35 @@ def compute_portfolio_return(returns_df: pd.DataFrame, ticker_to_weight: dict) -
     for ticker in ticker_to_weight.keys():
         w = ticker_to_weight[ticker]
         mask_non_null_asset_returns = ~returns_df[f"{ticker}_daily_returns"].isnull()
-        time_weighted_er_ticker = np.product(1 + returns_df[f"{ticker}_daily_returns"].loc[mask_non_null_asset_returns]) - 1
-        portfolio_return += w * time_weighted_er_ticker
+        mean_daily_return = returns_df[f"{ticker}_daily_returns"].loc[mask_non_null_asset_returns].mean()
+        portfolio_return += w * mean_daily_return
 
     return portfolio_return
 
 
-def compute_portfolio_variance(returns_df: pd.DataFrame, ticker_to_weight: dict) -> float:
-    portfolio_var = 0
+def compute_portfolio_variance(returns_df: pd.DataFrame, ticker_to_weight: dict, index_name: str) -> float:
+    if any(returns_df.isnull()):
+        portfolio_var = 0
 
-    for combo in itertools.combinations_with_replacement(ticker_to_weight.keys(), 2):
-        i = combo[0]
-        j = combo[1]
-        w_i = ticker_to_weight[i]
-        w_j = ticker_to_weight[j]
+        for combo in itertools.combinations_with_replacement(ticker_to_weight.keys(), 2):
+            i = combo[0]
+            j = combo[1]
+            w_i = ticker_to_weight[i]
+            w_j = ticker_to_weight[j]
 
-        sel_i = ~returns_df[f"{i}_daily_returns"].isnull()
-        sel_j = ~returns_df[f"{j}_daily_returns"].isnull()
+            sel_i = ~returns_df[f"{i}_daily_returns"].isnull()
+            sel_j = ~returns_df[f"{j}_daily_returns"].isnull()
 
-        if sel_i.sum() <= sel_j.sum():
-            cov_ij = np.cov(returns_df[f"{i}_daily_returns"].loc[sel_i], returns_df[f"{j}_daily_returns"].loc[sel_i])[0, 1]
-        else:
-            cov_ij = np.cov(returns_df[f"{i}_daily_returns"].loc[sel_j], returns_df[f"{j}_daily_returns"].loc[sel_j])[0, 1]
+            if sel_i.sum() <= sel_j.sum():
+                cov_ij = np.cov(returns_df[f"{i}_daily_returns"].loc[sel_i], returns_df[f"{j}_daily_returns"].loc[sel_i])[0, 1]
+            else:
+                cov_ij = np.cov(returns_df[f"{i}_daily_returns"].loc[sel_j], returns_df[f"{j}_daily_returns"].loc[sel_j])[0, 1]
 
-        portfolio_var += w_i * w_j * cov_ij
+            portfolio_var += w_i * w_j * cov_ij
+    else:
+        weights = list(ticker_to_weight.values())
+        cov_matrix = returns_df.drop(columns=[f"{index_name}_daily_returns"]).cov()
+        portfolio_var = np.dot(weights, np.dot(cov_matrix, weights))
 
     return portfolio_var
 

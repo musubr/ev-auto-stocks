@@ -1,6 +1,11 @@
-ticker,purchase_date,frac_of_portfolio
-AAPL,2021-11-01,0.2
-AMAT,2021-09-01,0.2
-COP,2021-10-10,0.2
-F,2022-01-01,0.2
-PFE,2022-01-01,0.2
+ticker,frac_of_portfolio
+AAPL,0.1
+AMAT,0.1
+TSLA,0.1
+COP,0.1
+RIVN,0.1
+PFE,0.1
+F,0.1
+AAL,0.1
+CVE,0.1
+C,0.1
