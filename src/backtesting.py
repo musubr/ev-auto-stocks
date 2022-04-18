@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import datetime as dt
-from typing import Iterable, Union
+from typing import Iterable, Tuple
 
 
 class Backtesting:
@@ -27,6 +27,7 @@ class Backtesting:
         self.ticker_to_num_shares_monthly = dict()
         self.ticker_to_purchase_date = dict()
         self.ticker_to_purchase_price = dict()
+        self.reached_holding_period_limit = []
 
     def get_closing_price(self, tr_date: dt, ticker: str) -> float:
         df = self.compiled_df.set_index("date")
@@ -49,7 +50,7 @@ class Backtesting:
 
             return list(ticker_to_ordered_attribute["ticker"])
 
-    def initialise_output_dfs(self, is_buy_df: pd.DataFrame) -> Union[pd.DataFrame, pd.DataFrame]:
+    def initialise_output_dfs(self, is_buy_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
         start_date = is_buy_df["date"][0]
 
         transactions_df = pd.DataFrame(
@@ -77,7 +78,8 @@ class Backtesting:
                 "r_f": 0,
                 "E_r": 0,
                 "R_i": 0,
-                "risk_adjusted_ri": 0
+                "risk_adjusted_ri": 0,
+                "reached_holding_period_limit": False
             },
             index=[0]
         )
@@ -100,12 +102,13 @@ class Backtesting:
                     days_held = (tr_date - self.ticker_to_purchase_date[ticker]).days
                     if days_held > max_days_held:
                         tickers_to_sell += [ticker]
+                        self.reached_holding_period_limit += [ticker]
 
         return tickers_to_sell
     
     def implement_trading_strategy(
             self, is_buy_df: pd.DataFrame, is_sell_df: pd.DataFrame, order_buy_trades_by: str, max_days_held: int = None
-    ) -> Union[pd.DataFrame, pd.DataFrame]:
+    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
         transactions_df, capm_df = self.initialise_output_dfs(is_buy_df)
 
@@ -142,8 +145,13 @@ class Backtesting:
                 er = rf + beta * (rm - rf)
                 ri = np.log(price / buy_price)
                 risk_adjusted_ri = ri - er
+                if ticker in self.reached_holding_period_limit:
+                    bool_reached_hpl = True
+                else:
+                    bool_reached_hpl = False
+
                 capm_df.loc[self.transaction_id, :] = np.array(
-                    [self.transaction_id, ticker, buy_date.date(), buy_price, tr_date.date(), price, rm, rf, er, ri, risk_adjusted_ri],
+                    [self.transaction_id, ticker, buy_date.date(), buy_price, tr_date.date(), price, rm, rf, er, ri, risk_adjusted_ri, bool_reached_hpl],
                     dtype=object)
 
                 self.ticker_to_num_shares_monthly[ticker] = 0
